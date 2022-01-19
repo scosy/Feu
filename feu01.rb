@@ -44,7 +44,7 @@ def eval(array)
       values << (operands[0].to_i).method(output.shift).(operands[1].to_i)
     end
   end
-  values
+  values.join
 end
 
 # Parsing
