@@ -3,60 +3,73 @@
 
 # Fonctions utilisées
 def find(board, to_find)
-  indexes_to_find = {}
-  to_find.each.with_index { |e, ind| (indexes_to_find["l #{ind}"] = e.index(/\d/)) }
-  to_find.map! { |e| e.delete(" ") }
-  # Nombre d'éléments correspondants à to_find trouvés
-  found = 0
-  # Stocker index des lignes trouvées
-  lines_found = []
-  # Stocker index des colonnes trouvées
-  columns_found = {}
-  # Récupérer les index des éléments à trouver
-  board.each.with_index do |r, i|
-    to_find.each.with_index do |ro, ind|
-      if r.match?(/#{ro}/) && !lines_found.include?(i)
-        lines_found << i
-        columns_found["l #{i}"] = (0..r.length).find_all { |i| r[i, ro.size] === ro }
-        found += 1
+  coordinates = []
+  number_to_find = nil
+  tfrow_index = 0
+  tfnumber_index = 0
+  all_true = 0
+  board.each.with_index do |brow, brow_index|
+    brow.each.with_index do |bnumber, bnumber_index|
+      number_to_find = to_find[tfrow_index][tfnumber_index]
+      if bnumber === number_to_find
+        if ((brow.size - 1 - bnumber_index) > 0)
+          to_find.size < 2 ? (coordinates << [bnumber_index, brow_index]) : ()
+          (to_find.size).times do |i|
+            if check_line(board, to_find, tfrow_index + i, brow_index + i, bnumber_index, tfnumber_index)
+              all_true += 1
+            else
+              all_true = 0
+            end
+            # p all_true
+            (all_true === to_find.size) ? (coordinates << [bnumber_index, brow_index]; all_true = 0) : ()
+          end
+        end
       end
     end
   end
-
-  # Comparer la différence entre les indexs des lignes à trouver et celles trouvées
-  # pour vérifier que c'est bien la forme qu'on recherche
-  (to_find.size - 1).downto(0) do |i|
-    @rtf = indexes_to_find.values[i] - indexes_to_find.values[i - 1]
-    break if i === 1
+  if coordinates.empty?
+    return "Introuvable"
+  else
+    print "Trouvé !\nCoordonnées: "
+    if coordinates.size > 1
+      result = coordinates.select { |e| e[0] === (coordinates.map { |el| el[0] }.max) }.select { |f| f[1] === (coordinates.map { |fl| fl[1] }.min)}.join(",")
+      puts result
+    else
+      result = coordinates.join(",")
+      puts result
+    end
   end
-  x = 0
-  while (columns_found.values.last.last - x) != @rtf
-    x += 1
+  new_board = []
+  board.each { |e|new_board << e.join }
+  new_board.map! { |e| e.each_char.with_index { |c, i| e[i] = '-' }}
+  for x in result[0].to_i..to_find.size + result[0].to_i - 1
+    for y in result[2].to_i..to_find[x - result[0].to_i].size + result[2].to_i - 1
+      next if to_find[y - result[2].to_i][x - result[0].to_i] === " "
+      puts y,x
+      new_board[y][x] = board[y][x]
+    end
   end
-  y = lines_found.first
-
-  (found >= to_find.size) ? (puts "Trouvé !") : (puts "Introuvable :(")
-
-  puts "Coordonnées: #{x}, #{y}"
-  # draw(board, to_find, columns_found, lines_found, x, y)
+  new_board
 end
 
-# def draw(board, to_find, columns_found, lines_found, x ,y)
-#   for i in 0..board.size - 1
-#     (board[i] = "-" * board[i].size; next) if !lines_found.include?(i)
 
-#     (i === lines_found[0]) ? (o = x) :  (o = columns_found["l #{i}"].last)
-#     (to_find.size === board.size) ? (r = to_find[i]) : (r = to_find[i - 1])
-#     # v = board[i].slice!(o..o + to_find[i - 1].size - 1)
-#     # board[i] = "-" * board[i].size
-#     # board[i].insert(o, v) unless  !v
-#     board[i] = "-" * (board[i].size - r.size)
-#     board[i].insert(o, r)
-#   end
-#   board
-
-  
-# end
+def check_line(board, to_find, tfrow_index, brow_index, bnumber_index, tfnumber_index)
+  line_match = false
+  coordinates = []
+  for i in 0..to_find[tfrow_index].size - 1
+    # p [board[brow_index][bnumber_index + i],to_find[tfrow_index][tfnumber_index + i]]
+    # Si les éléments suivants, à partir de la première correspondance, correspondent à la ligne de to_find
+    if board[brow_index][bnumber_index + i] === to_find[tfrow_index][tfnumber_index + i]
+      coordinates << [bnumber_index + i, brow_index]
+      line_match = true 
+    else
+      next if to_find[tfrow_index][tfnumber_index + i] === " "
+      line_match = false
+      break
+    end
+  end
+  return line_match
+end
 
 # Gestion d'erreurs
 (puts "error"; exit ) if ARGV.size != 2
@@ -66,8 +79,8 @@ end
 # Parsing
 board = []
 to_find = []
-File.foreach(ARGV[0]) { |line| board << line.chomp}
-File.foreach(ARGV[1]) { |line| to_find << line.chomp}
+File.foreach(ARGV[0]) { |line| board << line.chomp.split('')}
+File.foreach(ARGV[1]) { |line| to_find << line.chomp.split('')}
 
 # Résolution
 find_shape = find(board, to_find)
