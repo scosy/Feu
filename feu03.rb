@@ -26,7 +26,7 @@ def solve(unfinished_sudoku, row = 0, column = 0)
          valid?(unfinished_sudoku, row, column, possible_number)[2]
         unfinished_sudoku[row][column] = possible_number
         return unfinished_sudoku.map(&:join) if solve(unfinished_sudoku, row, column += 1)
-()
+
         unfinished_sudoku[row][column] = 0
       end
     end
