@@ -4,37 +4,92 @@
 
 # Fonctions utilisées
 def read_board(board)
+  obstacles = []
   coordinates = []
-  board.each_with_index { |line, li| line.each_with_index { |char, ci| coordinates << [li, ci] unless char != '.' } }
-  [coordinates, board.size]
+  board.each_with_index do |line, li|
+    line.each_with_index do |char, ci|
+      coordinates << [li, ci]
+      obstacles << [li, ci] if char == 'x'
+    end
+  end
+  [coordinates, board.size, obstacles]
 end
 
 def find(board)
   coords = read_board(board)[0]
   board_size = read_board(board)[1]
+  obstacles = read_board(board)[2]
   lines = []
+
   board_size.times do |index|
     lines << coords.filter { |coor| coor[0] == index }
   end
   squares = filter_squares(lines, board_size)
-  # board.map(&:join)
   squares.reject! { |square| square.include?(nil) }
-  squares.select! { |square| square[0][1] == square[2][1] }
+  squares.select! { |square| square[0][1] == square[2][1] && square[1][1] == square[3][1] }
   squares.reject! { |square| square.uniq.size < 4 }
+
+  obstacles.each do |obstacle|
+    squares.reject! do |square|
+      square.include?(obstacle)
+    end
+  end
+  valid_squares = fill_squares(squares)
+  obstacles.each do |obstacle|
+    valid_squares.reject! do |square|
+      square.include?(obstacle)
+    end
+  end
+  valid_squares[0].each do |valid_coordinate|
+    board[valid_coordinate[0]][valid_coordinate[1]] = 'o'
+  end
+  board.map(&:join)
 end
 
-def filter_squares(arr, size)
-  res = []
-  arr.each_with_index do |coordinates, index|
-    coordinates.each_with_index do |coordinate, ind|
-      a = []
-      a << coordinate
-      a << coordinates[ind + size - 1]
-      a << arr[index + size - 1][ind]
-      a << arr[index + size - 1][ind + size - 1]
-      res << a
+def fill_squares(squares)
+  squares.each do |square|
+    x = square[0][1]
+    y = square[0][0]
+    missing_y_coordinates = all_between(*[y..square[2][0]], y, square[2][0])
+    missing_y_coordinates.each do |c|
+      cc = c.clone
+      cc << x
+      square << cc
+      c << square[1][1]
+      square << c
     end
-    size -= 1
+    i = 0
+    until square.size == (square[1][1] - x + 1)**2
+      square_size = square.clone.size
+      missing_x_coordinates = all_between(*[square[i][1]..square[i + 1][1]], square[i][1], square[i + 1][1])
+      until square.size == square_size + (square[1][1] - x - 1)
+        missing_x_coordinates.each do |c|
+          c.prepend(square[i][0])
+          square << c
+        end
+      end
+      i += 2
+    end
+  end
+end
+
+def all_between(arr, lower, upper)
+  arr.grep(lower.succ...upper).map { |n| n.digits.reverse }
+end
+
+def filter_squares(arr, board_size)
+  res = []
+  board_size -= 1
+  board_size.downto(0) do |size|
+    next if size.zero?
+
+    arr.each_with_index do |coordinates, index|
+      coordinates.each_with_index do |coordinate, ind|
+        next if arr[index + size].nil?
+
+        res << [coordinate, coordinates[ind + size], arr[index + size][ind], arr[index + size][ind + size]]
+      end
+    end
   end
   res
 end
@@ -61,4 +116,4 @@ board_error?(board)
 find_biggest_square = find(board)
 
 # Affichage
-p find_biggest_square
+puts find_biggest_square
