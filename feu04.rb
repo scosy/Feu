@@ -111,6 +111,7 @@ end
 # Parsing
 board = []
 File.foreach(ARGV[0]) { |line| board << line.chomp.split('') }
+File.foreach(ARGV[0]) { |line| board << line.chomp.split('') }
 # Résolution
 board_error?(board)
 find_biggest_square = find(board)

@@ -36,12 +36,10 @@ end
 
 # Gestion d'erreurs
 if ARGV.size != 1
-  (puts 'error'
-   exit)
+  'error'
 end
 unless File.file?(ARGV[0])
-  (puts 'error'
-   exit)
+  'error'
 end
 # Parsing
 unfinished_sudoku = []
