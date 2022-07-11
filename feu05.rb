@@ -10,61 +10,75 @@
 
 # Fonctions utilisées
 def find_shortest_path(labyrinth, infos)
-  obstacles = isolate_obstacles(labyrinth, infos)[0]
-  obstacleless_labyrinth = isolate_obstacles(labyrinth, infos)[1]
-  entrance = [0, labyrinth[0].index(infos[8])]
-  labyrinth_exit = [labyrinth.index(labyrinth[-1]), labyrinth[-1].index(infos[9])]
-  path = []
+  @infos = infos
+  @labyrinth = labyrinth
+  @visited = labyrinth.map { |line| line.map { |char| char } }
+  @entrance = [0, labyrinth[0].index(infos[8])]
+  @labyrinth_exit = [labyrinth.index(labyrinth[-1]), labyrinth[-1].index(infos[9])]
 
-  obstacleless_labyrinth.each_with_index do |line, index|
-    loop do
-      line.each_with_index do |_char, line_index|
-        next unless index == entrance[0] && line_index == entrance[1]
+  @shortest_length = labyrinth.size * labyrinth[0].size
+  @length = 0
+  @has_path = false
+  @iterator = 0
 
-        if path.empty?
-          path << [index + 1, line_index - obstacles.count { |coordinate| coordinate[0] == index }]
-        elsif path.size < obstacleless_labyrinth.size - 2
-          path << [path.last[0] + 1, path.last[1]]
-        elsif path.last[1] < labyrinth_exit[1]
-          path << [path.last[0], path.last[1] + 1]
-        elsif path.last[1] > labyrinth_exit[1]
-          path << [path.last[0], path.last[1] - 1]
-        end
-      end
-      break if path.include?([labyrinth_exit[0] - 1, labyrinth_exit[1]])
+  def find_path
+    visit(@entrance[0], @entrance[1])
+  end
+
+  def visit(x, y)
+    if x == @labyrinth_exit[0] && y == @labyrinth_exit[1]
+      @has_path = true
+      @shortest_length = [@length, @shortest_length].min
+    end
+    return if @has_path
+
+    return if @iterator > 1000
+
+    @visited[x][y] = @infos[7] unless @entrance == [x, y] && @has_path == false
+    @length += 1
+
+    sum = 0
+    line_sum = 0
+    @visited.each do |arr|
+      sum += line_sum
+      line_sum = 0
+      arr.each { |char| line_sum += 1 if char == 'o' }
+    end
+    @labyrinth = @visited.map(&:join) if sum + 1 == @length
+
+    visit(x + 1, y) if can_visit(x + 1, y)
+    visit(x, y + 1) if can_visit(x, y + 1)
+    visit(x, y - 1) if can_visit(x, y - 1)
+    visit(x - 1, y) if can_visit(x - 1, y)
+
+    @visited[x][y] = @infos[6] unless @entrance == [x, y]
+    @length -= 1
+    @iterator += 1
+  end
+
+  def can_visit(x, y)
+    if x.negative? || y.negative? || x >= @labyrinth[0].size || y >= @labyrinth.size
+      false
+    elsif @labyrinth[x][y] == @infos[5] || @visited[x][y] == @infos[7]
+      false
+    else
+      true
     end
   end
 
-  p path, obstacles
-  path.each do |coordinate|
-    obstacleless_labyrinth[coordinate[0]][coordinate[1]] = infos[7]
-  end
-  obstacles.each do |coordinate|
-    obstacleless_labyrinth[coordinate[0]].insert(coordinate[1], infos[5])
-  end
-  obstacleless_labyrinth.map(&:join)
+  find_path
+  puts @infos.join, @labyrinth if @has_path
+  @has_path ? "Sortie atteinte en #{@shortest_length} coups" : 'Impossible'
 end
-
-def isolate_obstacles(array, infos)
-  obstacles = []
-  array[1..-2].each_with_index do |line, arr_index|
-    line.each_with_index do |char, line_index|
-      next unless char == infos[5] && (line_index.positive? && line_index < line.size - 1)
-
-      obstacles << [arr_index + 1, line_index]
-      array[arr_index + 1][line_index] = nil
-    end
-  end
-  [obstacles, array]
-end
-
-# Gestion d'erreurs
-(puts 'error'; exit) if ARGV.size != 1
 
 # Parsing
 labyrinth = []
 File.foreach(ARGV[0]) { |line| labyrinth << line.chomp.split('') }
 infos = labyrinth.shift
+
+# Gestion d'erreurs
+(puts 'error'; exit) if ARGV.size != 1
+(puts 'error'; exit) unless infos.join.start_with?(/^\d{1,2}x\d{1,2}/)
 
 # Résolution
 shortest_path = find_shortest_path(labyrinth, infos)
